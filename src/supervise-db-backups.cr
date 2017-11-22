@@ -1,17 +1,31 @@
 require "file_utils"
-require "./supervise-db-backups/*"
+require "logger"
 
 BACKUP_FOLDER_ROOT = "./backups"
-MAX_BACKUP_FOLDERS = 30
-MONGODUMP_CMD_ROOT = "mongodump -d douma_production -o"
+DEFAULT_MAX_BACKUP_FOLDERS = 30
+LOGFILE_PATH = "log"
+LOG = Logger.new(File.new(LOGFILE_PATH, "a"))
 
 # TODO Put your code here
 def supervise
-  puts "Need be able to set MAX_BACKUP_FOLDERS dynamically"
-  puts "Need be able to set MONGODUMP_CMD_ROOT dynamically (or using interpolate ENV variables)"
-  current_path = make_backup_folder
-  trigger_mongodump(current_path)
+  return unless check_args?
+
+  output_path = make_backup_folder
+  LOG.info "output_path: #{output_path}"
+  trigger_mongodump(output_path)
   cleanup_extra_folders
+  LOG.info "Done"
+end
+
+
+def check_args?
+  if ARGV.empty?
+    puts "Missing valid hostname"
+    return false
+  end
+
+
+  return true
 end
 
 def backup_path
@@ -26,12 +40,20 @@ def make_backup_folder
   backup_path
 end
 
-def trigger_mongodump(current_path)
-  output = IO::Memory.new
-  cmd = "#{MONGODUMP_CMD_ROOT} #{current_path}"
+def mongo_cmd(output_path)
+  hostname = ARGV[0]
+  "mongodump -h #{hostname} -o #{output_path}"
+end
+
+def trigger_mongodump(output_path)
+  cmd = mongo_cmd(output_path)
   puts "cmd: #{cmd}"
-  Process.run(cmd, shell: true, output: output)
-  puts output.to_s
+
+  output = IO::Memory.new
+  Process.run(cmd, shell: true, output: output, error: output)
+
+  output.close
+  LOG.info(output.to_s)
 end
 
 def cleanup_extra_folders
@@ -46,15 +68,15 @@ end
 
 # Find all backup folders
 def need_to_cleanup
-  sorted_folder_entries.size >= MAX_BACKUP_FOLDERS
+  sorted_folder_entries.size >= DEFAULT_MAX_BACKUP_FOLDERS
 end
 
 def remove_older_folders
-  paths_to_remove = sorted_folder_entries.first(sorted_folder_entries.size - MAX_BACKUP_FOLDERS)
+  paths_to_remove = sorted_folder_entries.first(sorted_folder_entries.size - DEFAULT_MAX_BACKUP_FOLDERS)
+  LOG.info "Deleting old folders: #{paths_to_remove}"
   paths_to_remove.each do |path| 
     FileUtils.rm_rf File.join(BACKUP_FOLDER_ROOT, path)
   end
 end
 
-puts ARGV
 supervise

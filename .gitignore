@@ -4,3 +4,6 @@
 /.shards/
 
 backups
+log
+*.o
+bc_flags
