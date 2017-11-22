@@ -2,11 +2,13 @@ require "file_utils"
 require "./supervise-db-backups/*"
 
 BACKUP_FOLDER_ROOT = "./backups"
-MAX_BACKUP_FOLDERS = 100
+MAX_BACKUP_FOLDERS = 30
 MONGODUMP_CMD_ROOT = "mongodump -d douma_production -o"
 
 # TODO Put your code here
 def supervise
+  puts "Need be able to set MAX_BACKUP_FOLDERS dynamically"
+  puts "Need be able to set MONGODUMP_CMD_ROOT dynamically (or using interpolate ENV variables)"
   current_path = make_backup_folder
   trigger_mongodump(current_path)
   cleanup_extra_folders
@@ -54,4 +56,5 @@ def remove_older_folders
   end
 end
 
+puts ARGV
 supervise
