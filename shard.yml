@@ -1,0 +1,13 @@
+name: supervise-db-backups
+version: 0.1.0
+
+authors:
+  - Jonathan Smith <jonathan@peoplesized.com>
+
+targets:
+  supervise-db-backups:
+    main: src/supervise-db-backups.cr
+
+crystal: 0.23.1
+
+license: MIT
